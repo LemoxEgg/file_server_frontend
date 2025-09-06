@@ -131,6 +131,89 @@ var Eq = class extends CustomType {
 var Gt = class extends CustomType {
 };
 
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function concat_loop(loop$strings, loop$accumulator) {
+  while (true) {
+    let strings = loop$strings;
+    let accumulator = loop$accumulator;
+    if (strings instanceof Empty) {
+      return accumulator;
+    } else {
+      let string5 = strings.head;
+      let strings$1 = strings.tail;
+      loop$strings = strings$1;
+      loop$accumulator = accumulator + string5;
+    }
+  }
+}
+function concat2(strings) {
+  return concat_loop(strings, "");
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
+var Decoder = class extends CustomType {
+  constructor(function$) {
+    super();
+    this.function = function$;
+  }
+};
+function run(data, decoder) {
+  let $ = decoder.function(data);
+  let maybe_invalid_data;
+  let errors;
+  maybe_invalid_data = $[0];
+  errors = $[1];
+  if (errors instanceof Empty) {
+    return new Ok(maybe_invalid_data);
+  } else {
+    return new Error(errors);
+  }
+}
+function map2(decoder, transformer) {
+  return new Decoder(
+    (d) => {
+      let $ = decoder.function(d);
+      let data;
+      let errors;
+      data = $[0];
+      errors = $[1];
+      return [transformer(data), errors];
+    }
+  );
+}
+
+// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
+function to_string(term) {
+  return term.toString();
+}
+function starts_with(haystack, needle) {
+  return haystack.startsWith(needle);
+}
+var unicode_whitespaces = [
+  " ",
+  // Space
+  "	",
+  // Horizontal tab
+  "\n",
+  // Line feed
+  "\v",
+  // Vertical tab
+  "\f",
+  // Form feed
+  "\r",
+  // Carriage return
+  "\x85",
+  // Next line
+  "\u2028",
+  // Line separator
+  "\u2029"
+  // Paragraph separator
+].join("");
+var trim_start_regex = /* @__PURE__ */ new RegExp(
+  `^[${unicode_whitespaces}]*`
+);
+var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Ascending = class extends CustomType {
 };
@@ -153,6 +236,25 @@ function reverse_and_prepend(loop$prefix, loop$suffix) {
 function reverse(list4) {
   return reverse_and_prepend(list4, toList([]));
 }
+function map_loop(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      loop$list = rest$1;
+      loop$fun = fun;
+      loop$acc = prepend(fun(first$1), acc);
+    }
+  }
+}
+function map(list4, fun) {
+  return map_loop(list4, fun, toList([]));
+}
 function append_loop(loop$first, loop$second) {
   while (true) {
     let first = loop$first;
@@ -167,10 +269,10 @@ function append_loop(loop$first, loop$second) {
     }
   }
 }
-function append(first, second) {
+function append2(first, second) {
   return append_loop(reverse(first), second);
 }
-function fold(loop$list, loop$initial, loop$fun) {
+function fold2(loop$list, loop$initial, loop$fun) {
   while (true) {
     let list4 = loop$list;
     let initial = loop$initial;
@@ -183,6 +285,36 @@ function fold(loop$list, loop$initial, loop$fun) {
       loop$list = rest$1;
       loop$initial = fun(initial, first$1);
       loop$fun = fun;
+    }
+  }
+}
+function intersperse_loop(loop$list, loop$separator, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let separator = loop$separator;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      loop$list = rest$1;
+      loop$separator = separator;
+      loop$acc = prepend(first$1, prepend(separator, acc));
+    }
+  }
+}
+function intersperse(list4, elem) {
+  if (list4 instanceof Empty) {
+    return list4;
+  } else {
+    let $ = list4.tail;
+    if ($ instanceof Empty) {
+      return list4;
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = $;
+      return intersperse_loop(rest$1, elem, toList([first$1]));
     }
   }
 }
@@ -520,89 +652,6 @@ function sort(list4, compare4) {
   }
 }
 
-// build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function concat_loop(loop$strings, loop$accumulator) {
-  while (true) {
-    let strings = loop$strings;
-    let accumulator = loop$accumulator;
-    if (strings instanceof Empty) {
-      return accumulator;
-    } else {
-      let string5 = strings.head;
-      let strings$1 = strings.tail;
-      loop$strings = strings$1;
-      loop$accumulator = accumulator + string5;
-    }
-  }
-}
-function concat2(strings) {
-  return concat_loop(strings, "");
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
-var Decoder = class extends CustomType {
-  constructor(function$) {
-    super();
-    this.function = function$;
-  }
-};
-function run(data, decoder) {
-  let $ = decoder.function(data);
-  let maybe_invalid_data;
-  let errors;
-  maybe_invalid_data = $[0];
-  errors = $[1];
-  if (errors instanceof Empty) {
-    return new Ok(maybe_invalid_data);
-  } else {
-    return new Error(errors);
-  }
-}
-function map2(decoder, transformer) {
-  return new Decoder(
-    (d) => {
-      let $ = decoder.function(d);
-      let data;
-      let errors;
-      data = $[0];
-      errors = $[1];
-      return [transformer(data), errors];
-    }
-  );
-}
-
-// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
-function to_string(term) {
-  return term.toString();
-}
-function starts_with(haystack, needle) {
-  return haystack.startsWith(needle);
-}
-var unicode_whitespaces = [
-  " ",
-  // Space
-  "	",
-  // Horizontal tab
-  "\n",
-  // Line feed
-  "\v",
-  // Vertical tab
-  "\f",
-  // Form feed
-  "\r",
-  // Carriage return
-  "\x85",
-  // Next line
-  "\u2028",
-  // Line separator
-  "\u2029"
-  // Paragraph separator
-].join("");
-var trim_start_regex = /* @__PURE__ */ new RegExp(
-  `^[${unicode_whitespaces}]*`
-);
-var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
-
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
 function guard(requirement, consequence, alternative) {
   if (requirement) {
@@ -632,10 +681,10 @@ var option_none = /* @__PURE__ */ new None();
 var GT = /* @__PURE__ */ new Gt();
 var LT = /* @__PURE__ */ new Lt();
 var EQ = /* @__PURE__ */ new Eq();
-function compare3(a, b) {
-  if (a.name === b.name) {
+function compare3(a2, b) {
+  if (a2.name === b.name) {
     return EQ;
-  } else if (a.name < b.name) {
+  } else if (a2.name < b.name) {
     return LT;
   } else {
     return GT;
@@ -799,8 +848,8 @@ function prepare(attributes) {
       return attributes;
     } else {
       let _pipe = attributes;
-      let _pipe$1 = sort(_pipe, (a, b) => {
-        return compare3(b, a);
+      let _pipe$1 = sort(_pipe, (a2, b) => {
+        return compare3(b, a2);
       });
       return merge(_pipe$1, empty_list);
     }
@@ -818,6 +867,9 @@ var always_kind = 2;
 // build/dev/javascript/lustre/lustre/attribute.mjs
 function attribute2(name, value) {
   return attribute(name, value);
+}
+function class$(name) {
+  return attribute2("class", name);
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -1096,44 +1148,44 @@ function text(key, mapper, content) {
 var unsafe_inner_html_kind = 3;
 
 // build/dev/javascript/lustre/lustre/internals/equals.ffi.mjs
-var isReferenceEqual = (a, b) => a === b;
-var isEqual2 = (a, b) => {
-  if (a === b) {
+var isReferenceEqual = (a2, b) => a2 === b;
+var isEqual2 = (a2, b) => {
+  if (a2 === b) {
     return true;
   }
-  if (a == null || b == null) {
+  if (a2 == null || b == null) {
     return false;
   }
-  const type = typeof a;
+  const type = typeof a2;
   if (type !== typeof b) {
     return false;
   }
   if (type !== "object") {
     return false;
   }
-  const ctor = a.constructor;
+  const ctor = a2.constructor;
   if (ctor !== b.constructor) {
     return false;
   }
-  if (Array.isArray(a)) {
-    return areArraysEqual(a, b);
+  if (Array.isArray(a2)) {
+    return areArraysEqual(a2, b);
   }
-  return areObjectsEqual(a, b);
+  return areObjectsEqual(a2, b);
 };
-var areArraysEqual = (a, b) => {
-  let index2 = a.length;
+var areArraysEqual = (a2, b) => {
+  let index2 = a2.length;
   if (index2 !== b.length) {
     return false;
   }
   while (index2--) {
-    if (!isEqual2(a[index2], b[index2])) {
+    if (!isEqual2(a2[index2], b[index2])) {
       return false;
     }
   }
   return true;
 };
-var areObjectsEqual = (a, b) => {
-  const properties = Object.keys(a);
+var areObjectsEqual = (a2, b) => {
+  const properties = Object.keys(a2);
   let index2 = properties.length;
   if (Object.keys(b).length !== index2) {
     return false;
@@ -1143,7 +1195,7 @@ var areObjectsEqual = (a, b) => {
     if (!Object.hasOwn(b, property3)) {
       return false;
     }
-    if (!isEqual2(a[property3], b[property3])) {
+    if (!isEqual2(a2[property3], b[property3])) {
       return false;
     }
   }
@@ -1185,7 +1237,7 @@ function remove_event(events, path, name) {
   );
 }
 function remove_attributes(handlers, path, attributes) {
-  return fold(
+  return fold2(
     attributes,
     handlers,
     (events, attribute3) => {
@@ -1244,7 +1296,7 @@ function add_event(events, mapper, path, name, handler) {
   );
 }
 function add_attributes(handlers, mapper, path, attributes) {
-  return fold(
+  return fold2(
     attributes,
     handlers,
     (events, attribute3) => {
@@ -1388,11 +1440,44 @@ function add_children(events, mapper, path, child_index, children) {
 }
 
 // build/dev/javascript/lustre/lustre/element.mjs
+function element2(tag, attributes, children) {
+  return element(
+    "",
+    identity2,
+    "",
+    tag,
+    attributes,
+    children,
+    empty2(),
+    false,
+    false
+  );
+}
 function text2(content) {
   return text("", identity2, content);
 }
 function none2() {
   return text("", identity2, "");
+}
+
+// build/dev/javascript/lustre/lustre/element/html.mjs
+function text3(content) {
+  return text2(content);
+}
+function h1(attrs, children) {
+  return element2("h1", attrs, children);
+}
+function div(attrs, children) {
+  return element2("div", attrs, children);
+}
+function hr(attrs) {
+  return element2("hr", attrs, empty_list);
+}
+function a(attrs, children) {
+  return element2("a", attrs, children);
+}
+function br(attrs) {
+  return element2("br", attrs, empty_list);
 }
 
 // build/dev/javascript/lustre/lustre/vdom/patch.mjs
@@ -3240,13 +3325,13 @@ function makeEffect(synchronous) {
     before_paint: empty_list
   };
 }
-function listAppend(a, b) {
-  if (a instanceof Empty) {
+function listAppend(a2, b) {
+  if (a2 instanceof Empty) {
     return b;
   } else if (b instanceof Empty) {
-    return a;
+    return a2;
   } else {
-    return append(a, b);
+    return append2(a2, b);
   }
 }
 
@@ -3296,7 +3381,7 @@ function new$6(options) {
     option_none,
     option_none
   );
-  return fold(
+  return fold2(
     options,
     init2,
     (config, option) => {
@@ -3360,15 +3445,6 @@ var NotABrowser = class extends CustomType {
 function application(init2, update3, view2) {
   return new App(init2, update3, view2, new$6(empty_list));
 }
-function simple(init2, update3, view2) {
-  let init$1 = (start_args) => {
-    return [init2(start_args), none()];
-  };
-  let update$1 = (model, msg) => {
-    return [update3(model, msg), none()];
-  };
-  return application(init$1, update$1, view2);
-}
 function start3(app, selector, start_args) {
   return guard(
     !is_browser(),
@@ -3381,51 +3457,74 @@ function start3(app, selector, start_args) {
 
 // build/dev/javascript/file_server_frontend/file_server_frontend.mjs
 var FILEPATH = "src/file_server_frontend.gleam";
+var State = class extends CustomType {
+  constructor(current_dir, dirs, files) {
+    super();
+    this.current_dir = current_dir;
+    this.dirs = dirs;
+    this.files = files;
+  }
+};
 function init(_) {
-  throw makeError(
-    "todo",
-    FILEPATH,
-    "file_server_frontend",
-    17,
-    "init",
-    "call the server and ask for the current dir and files",
-    {}
-  );
+  return [
+    new State(".", toList(["dir1", "dir2"]), toList(["file1", "file2"])),
+    none()
+  ];
 }
 function update2(state, msg) {
   throw makeError(
     "todo",
     FILEPATH,
     "file_server_frontend",
-    26,
+    32,
     "update",
     "call the server for the new files and dirs",
     {}
   );
 }
 function view(state) {
-  throw makeError(
-    "todo",
-    FILEPATH,
-    "file_server_frontend",
-    30,
-    "view",
-    "render the state",
-    {}
+  let elements = toList([
+    h1(toList([]), toList([text3("Lem's lil Server")])),
+    hr(toList([]))
+  ]);
+  let _block;
+  let _pipe = map(
+    state.dirs,
+    (x) => {
+      return a(
+        toList([class$("directory")]),
+        toList([text3(x)])
+      );
+    }
   );
+  let _pipe$1 = append2(
+    _pipe,
+    map(
+      state.files,
+      (x) => {
+        return a(
+          toList([class$("file")]),
+          toList([text3(x)])
+        );
+      }
+    )
+  );
+  _block = intersperse(_pipe$1, br(toList([])));
+  let links = _block;
+  return div(toList([]), append2(elements, links));
 }
 function main() {
-  let app = simple(init, update2, view);
+  let app = application(init, update2, view);
   let $ = start3(app, "#app", void 0);
   if (!($ instanceof Ok)) {
     throw makeError(
       "let_assert",
       FILEPATH,
       "file_server_frontend",
-      7,
+      10,
       "main",
       "Pattern match failed, no pattern matched the value.",
-      { value: $, start: 143, end: 192, pattern_start: 154, pattern_end: 159 }
+      { value: $, start: 225, end: 274, pattern_start: 236, pattern_end: 241 }
     );
   }
   return void 0;
