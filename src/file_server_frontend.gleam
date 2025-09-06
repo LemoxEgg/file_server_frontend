@@ -9,6 +9,9 @@ import lustre/element.{type Element}
 import lustre/element/html
 import rsvp
 
+// TODO i think the way i implemented the requests might lead to an infinite
+// loop, need to test that
+
 pub fn main() {
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
