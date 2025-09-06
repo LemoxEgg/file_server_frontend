@@ -1,9 +1,13 @@
+import gleam/dynamic/decode
 import gleam/list
+import gleam/string
+import gleam/time/timestamp
 import lustre
 import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
+import rsvp
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -13,23 +17,45 @@ pub fn main() {
 }
 
 type State {
-  State(current_dir: String, dirs: List(String), files: List(String))
+  State(
+    current_dir: String,
+    dirs: List(String),
+    files: List(String),
+    is_loading: Bool,
+    load_time: timestamp.Timestamp,
+  )
 }
 
 fn init(_args) -> #(State, Effect(Msg)) {
-  // todo as "call the server and ask for the current dir and files"
-  // TEMP basic state to test the app
-
-  #(State(".", ["dir1", "dir2"], ["file1", "file2"]), effect.none())
+  #(State(".", [], [], True, timestamp.system_time()), request_update("."))
 }
 
 type Msg {
-  UserClickedFile(name: String)
-  UserClickedDir(name: String)
+  UserClickedLink(name: String)
+  ApiReturned(Result(#(List(String), List(String)), rsvp.Error))
 }
 
 fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
-  todo as "call the server for the new files and dirs"
+  case msg {
+    ApiReturned(r) -> {
+      case r {
+        Error(e) -> todo
+        Ok(x) -> {
+          #(
+            State(state.current_dir, x.0, x.1, False, state.load_time),
+            effect.none(),
+          )
+        }
+      }
+    }
+    UserClickedLink(name:) -> {
+      let new_dir = state.current_dir <> "/" <> name
+      #(
+        State(new_dir, [], [], True, timestamp.system_time()),
+        request_update(new_dir),
+      )
+    }
+  }
 }
 
 fn view(state: State) -> Element(Msg) {
@@ -50,4 +76,19 @@ fn view(state: State) -> Element(Msg) {
     |> list.intersperse(html.br([]))
 
   html.div([], list.append(elements, links))
+}
+
+/// requests a new set of directories and files to show on the ui to the server
+/// takes the curent directory as an argument and returns a tuple of a list of directories and a list of files
+fn request_update(dir: String) -> Effect(Msg) {
+  let request = rsvp.expect_json(decode_response(), ApiReturned)
+
+  rsvp.get(dir, request)
+}
+
+fn decode_response() -> decode.Decoder(#(List(String), List(String))) {
+  use dirs <- decode.field("directories", decode.list(decode.string))
+  use files <- decode.field("files", decode.list(decode.string))
+
+  decode.success(#(dirs, files))
 }
